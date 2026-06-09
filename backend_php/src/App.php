@@ -747,7 +747,7 @@ final class App
             @unlink($target);
             throw new HttpException(
                 400,
-                'Impossible d\'extraire le texte du CV (PyMuPDF et Groq Vision). Verifiez PYTHON_BINARY dans backend_php/.env ou essayez le format DOCX.'
+                'Impossible d\'extraire le texte du CV via Groq. Verifiez GROQ_API_KEY dans .env et l\'extension Imagick sur le serveur.'
             );
         }
 
@@ -1404,7 +1404,7 @@ final class App
         if ($cvText === '') {
             throw new HttpException(
                 400,
-                'Impossible d\'extraire le texte du CV (PyMuPDF et Groq Vision). Verifiez PYTHON_BINARY dans backend_php/.env ou essayez le format DOCX.'
+                'Impossible d\'extraire le texte du CV via Groq. Verifiez GROQ_API_KEY dans .env et l\'extension Imagick sur le serveur.'
             );
         }
 
@@ -1637,7 +1637,7 @@ final class App
         $cvText = trim($this->cvExtractor->extractFromPath($target, $format, $this->groq));
         if ($cvText === '') {
             @unlink($target);
-            throw new RuntimeException('Impossible d\'extraire le texte du CV (PyMuPDF et Groq Vision).');
+            throw new RuntimeException('Impossible d\'extraire le texte du CV via Groq Vision.');
         }
 
         $analysis = $this->groq->analyseCv($cvText);

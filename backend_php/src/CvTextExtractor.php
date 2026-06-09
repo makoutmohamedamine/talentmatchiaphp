@@ -3,11 +3,13 @@
 declare(strict_types=1);
 
 /**
- * Extraction texte PDF/DOCX (pretraitement avant envoi a Groq).
- * PyMuPDF en priorite pour les PDF — aucun algorithme ML (TF-IDF, Word2Vec, XGBoost).
+ * Extraction texte CV — Groq Vision en priorite (PDF), PHP natif pour DOCX.
+ * Compatible Hostinger : Imagick / ImageMagick CLI, sans Python obligatoire.
  */
 final class CvTextExtractor
 {
+    private const PDF_MAX_VISION_PAGES = 4;
+
     /** @var list<string>|null */
     private ?array $pythonCommand = null;
     private bool $pythonChecked = false;
@@ -19,37 +21,35 @@ final class CvTextExtractor
     public function extractFromPath(string $path, string $format, ?GroqClient $groq = null): string
     {
         $format = strtolower($format);
-        $text = trim($this->extractViaPython($path, $format));
 
-        if ($text === '') {
-            $data = file_get_contents($path);
-            if ($data === false) {
-                throw new RuntimeException('Impossible de lire le fichier CV.');
-            }
-            $text = trim($this->extractFromBytes($data, $format));
-        }
-
-        if ($text === '' && $format === 'pdf' && $groq !== null) {
-            $images = $this->exportPdfPagesAsBase64($path);
-            if ($images !== []) {
-                $text = trim($groq->extractCvTextFromPdfImages($images));
-            }
-        }
-
-        return $text;
+        return match ($format) {
+            'pdf' => $this->extractPdfPath($path, $groq),
+            'docx' => $this->extractDocxPath($path, $groq),
+            default => throw new HttpException(400, 'Format non supporte. PDF ou DOCX requis.'),
+        };
     }
 
     /** @return list<string> */
-    public function exportPdfPagesAsBase64(string $path, int $maxPages = 4): array
+    public function exportPdfPagesAsBase64(string $path, int $maxPages = self::PDF_MAX_VISION_PAGES): array
     {
-        $output = $this->runPythonScript($path, 'pdf', ['--pages-base64']);
-        if ($output === '') {
-            return [];
+        $maxPages = max(1, min(8, $maxPages));
+
+        $images = $this->exportPdfViaImagick($path, $maxPages);
+        if ($images !== []) {
+            return $images;
         }
 
-        $decoded = json_decode($output, true);
+        $images = $this->exportPdfViaImageMagickCli($path, $maxPages);
+        if ($images !== []) {
+            return $images;
+        }
 
-        return is_array($decoded) ? array_values(array_filter($decoded, 'is_string')) : [];
+        $images = $this->exportPdfViaPython($path, $maxPages);
+        if ($images !== []) {
+            return $images;
+        }
+
+        return [];
     }
 
     public function extractFromBytes(string $data, string $format): string
@@ -71,6 +71,65 @@ final class CvTextExtractor
             return 'docx';
         }
         throw new HttpException(400, 'Format non supporte. PDF ou DOCX requis.');
+    }
+
+    private function extractPdfPath(string $path, ?GroqClient $groq): string
+    {
+        if ($groq === null || !$groq->isAvailable()) {
+            throw new HttpException(
+                503,
+                'GROQ_API_KEY requise pour extraire et analyser les CV PDF.'
+            );
+        }
+
+        $images = $this->exportPdfPagesAsBase64($path);
+        if ($images !== []) {
+            $text = trim($groq->extractCvTextFromPdfImages($images));
+            if ($text !== '') {
+                return $text;
+            }
+        }
+
+        $data = file_get_contents($path);
+        if ($data === false) {
+            throw new RuntimeException('Impossible de lire le fichier CV.');
+        }
+
+        $native = trim($this->extractPdf($data));
+        if (strlen($native) >= 80) {
+            return $native;
+        }
+
+        throw new HttpException(
+            400,
+            'Impossible d\'extraire le texte du PDF via Groq Vision. '
+            . 'Verifiez GROQ_API_KEY dans .env et activez l\'extension Imagick sur le serveur (Hostinger : PHP → Extensions).'
+        );
+    }
+
+    private function extractDocxPath(string $path, ?GroqClient $groq): string
+    {
+        $data = file_get_contents($path);
+        if ($data === false) {
+            throw new RuntimeException('Impossible de lire le fichier CV.');
+        }
+
+        $text = trim($this->extractDocx($data));
+        if ($text !== '') {
+            return $text;
+        }
+
+        if ($groq !== null && $groq->isAvailable()) {
+            $text = trim($groq->extractCvTextFromPlainContent(
+                'Contenu brut DOCX illisible — extraction echouee cote serveur.',
+                $data
+            ));
+            if ($text !== '') {
+                return $text;
+            }
+        }
+
+        throw new HttpException(400, 'Impossible d\'extraire le texte du fichier DOCX.');
     }
 
     private function extractDocx(string $data): string
@@ -116,6 +175,131 @@ final class CvTextExtractor
         } finally {
             @unlink($tmp);
         }
+    }
+
+    /** @return list<string> */
+    private function exportPdfViaImagick(string $path, int $maxPages): array
+    {
+        if (!class_exists(\Imagick::class)) {
+            return [];
+        }
+
+        try {
+            $imagick = new \Imagick();
+            $imagick->setResolution(144, 144);
+            $imagick->readImage($path . '[0-' . ($maxPages - 1) . ']');
+            $imagick->setImageFormat('png');
+
+            $images = [];
+            foreach ($imagick as $page) {
+                $page->setImageFormat('png');
+                $page->setImageBackgroundColor('white');
+                if (defined('Imagick::ALPHACHANNEL_REMOVE')) {
+                    $page->setImageAlphaChannel(\Imagick::ALPHACHANNEL_REMOVE);
+                }
+                $blob = $page->getImageBlob();
+                if ($blob !== '') {
+                    $encoded = base64_encode($blob);
+                    if (strlen($encoded) <= 3_500_000) {
+                        $images[] = $encoded;
+                    }
+                }
+            }
+            $imagick->clear();
+            $imagick->destroy();
+
+            return $images;
+        } catch (Throwable) {
+            return [];
+        }
+    }
+
+    /** @return list<string> */
+    private function exportPdfViaImageMagickCli(string $path, int $maxPages): array
+    {
+        if (!function_exists('exec') && !function_exists('shell_exec')) {
+            return [];
+        }
+
+        $tmpDir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'cv_pdf_' . bin2hex(random_bytes(4));
+        if (!@mkdir($tmpDir, 0700) && !is_dir($tmpDir)) {
+            return [];
+        }
+
+        try {
+            $pageSpec = $path . '[0-' . ($maxPages - 1) . ']';
+            $outPattern = $tmpDir . DIRECTORY_SEPARATOR . 'page.png';
+            $escapedIn = $this->escapeCliArg($pageSpec);
+            $escapedOut = $this->escapeCliArg($outPattern);
+
+            $commands = [
+                "magick convert -density 150 {$escapedIn} -quality 92 {$escapedOut}",
+                "convert -density 150 {$escapedIn} -quality 92 {$escapedOut}",
+            ];
+
+            $ran = false;
+            foreach ($commands as $command) {
+                if (function_exists('exec')) {
+                    @exec($command . ' 2>/dev/null', $_, $code);
+                    if ($code === 0) {
+                        $ran = true;
+                        break;
+                    }
+                } elseif (function_exists('shell_exec')) {
+                    @shell_exec($command . ' 2>/dev/null');
+                    if (glob($tmpDir . DIRECTORY_SEPARATOR . 'page*.png') !== []) {
+                        $ran = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!$ran) {
+                return [];
+            }
+
+            $files = glob($tmpDir . DIRECTORY_SEPARATOR . '*.png') ?: [];
+            sort($files);
+            $images = [];
+            foreach (array_slice($files, 0, $maxPages) as $file) {
+                $blob = file_get_contents($file);
+                if ($blob !== false && $blob !== '') {
+                    $encoded = base64_encode($blob);
+                    if (strlen($encoded) <= 3_500_000) {
+                        $images[] = $encoded;
+                    }
+                }
+            }
+
+            return $images;
+        } finally {
+            foreach (glob($tmpDir . DIRECTORY_SEPARATOR . '*') ?: [] as $file) {
+                @unlink($file);
+            }
+            @rmdir($tmpDir);
+        }
+    }
+
+    /** @return list<string> */
+    private function exportPdfViaPython(string $path, int $maxPages): array
+    {
+        $output = $this->runPythonScript($path, 'pdf', ['--pages-base64', '--max-pages', (string) $maxPages]);
+        if ($output === '') {
+            return [];
+        }
+
+        $decoded = json_decode($output, true);
+
+        return is_array($decoded) ? array_values(array_filter($decoded, 'is_string')) : [];
+    }
+
+    private function escapeCliArg(string $value): string
+    {
+        if (PHP_OS_FAMILY === 'Windows') {
+            return '"' . str_replace(['"', '%'], ['""', '%%'], $value) . '"';
+        }
+
+        return escapeshellarg($value);
     }
 
     private function extractPdf(string $data): string
@@ -288,11 +472,6 @@ final class CvTextExtractor
         return trim($text);
     }
 
-    private function extractViaPython(string $path, string $format): string
-    {
-        return trim($this->runPythonScript($path, $format));
-    }
-
     /** @param list<string> $extraArgs */
     private function runPythonScript(string $path, string $format, array $extraArgs = []): string
     {
@@ -363,12 +542,10 @@ final class CvTextExtractor
 
         $this->pythonChecked = true;
         $configured = trim((string) ($this->config?->get('PYTHON_BINARY') ?? ''));
-        if ($configured !== '') {
-            if ($this->commandResponds([$configured, '--version'])) {
-                $this->pythonCommand = [$configured];
+        if ($configured !== '' && $this->commandResponds([$configured, '--version'])) {
+            $this->pythonCommand = [$configured];
 
-                return $this->pythonCommand;
-            }
+            return $this->pythonCommand;
         }
 
         foreach ($this->defaultPythonCandidates() as $candidate) {
@@ -388,13 +565,7 @@ final class CvTextExtractor
     private function defaultPythonCandidates(): array
     {
         if (PHP_OS_FAMILY === 'Windows') {
-            return [
-                ['py', '-3'],
-                ['py', '-3.14'],
-                ['py', '-3.12'],
-                ['python'],
-                ['python3'],
-            ];
+            return [['py', '-3'], ['py', '-3.14'], ['py', '-3.12'], ['python'], ['python3']];
         }
 
         return [['python3'], ['python']];

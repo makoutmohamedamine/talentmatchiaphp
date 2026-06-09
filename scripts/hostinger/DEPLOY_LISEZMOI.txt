@@ -35,7 +35,9 @@ ETAPES SUR HOSTINGER
 
 PHP REQUIS (Hostinger)
 ----------------------
-  PHP 8.1+ avec extensions : curl, pdo_mysql, mbstring, zip
+  PHP 8.1+ avec extensions : curl, pdo_mysql, mbstring, zip, imagick
+  hPanel → Sites web → PHP → Extensions → activer imagick
+  GROQ_API_KEY obligatoire dans backend_php/.env (extraction PDF via Groq Vision)
 
 PREMIERE CONNEXION
 ------------------

@@ -77,6 +77,28 @@ final class GroqClient
         return trim((string) ($result['raw'] ?? ''));
     }
 
+    /** Repli texte brut (DOCX difficile) via Groq. */
+    public function extractCvTextFromPlainContent(string $hint, string $rawBytes): string
+    {
+        if (!$this->isAvailable()) {
+            return '';
+        }
+
+        $snippet = mb_substr($rawBytes, 0, 12000, 'UTF-8');
+        $result = $this->callGroq(
+            'Tu extrais le texte lisible d\'un document CV. Reponds UNIQUEMENT avec le texte brut du CV.',
+            $hint . "\n\nDonnees brutes (extrait):\n" . $snippet,
+            4000,
+            false
+        );
+
+        if (!($result['ok'] ?? false)) {
+            return '';
+        }
+
+        return trim((string) ($result['raw'] ?? ''));
+    }
+
     public function analyseCv(string $cvText, string $jobDescription = '', string $jobTitle = ''): array
     {
         $system = 'Tu es un expert senior en ressources humaines et recrutement avec 15 ans d\'experience. '

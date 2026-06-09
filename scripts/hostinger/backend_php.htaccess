@@ -1,0 +1,7 @@
+# Bloquer l'acces web direct au code source
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteRule ^(src|database|scripts)/ - [F,L]
+</IfModule>
+
+Options -Indexes

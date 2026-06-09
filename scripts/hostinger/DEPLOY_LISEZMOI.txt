@@ -1,0 +1,44 @@
+================================================================================
+  TalentMatch IA — Deploiement Hostinger (public_html)
+================================================================================
+
+CONTENU DE CE DOSSIER
+---------------------
+  index.html, static/     → Application React (interface)
+  backend_php/            → API PHP (ne pas supprimer)
+  .htaccess               → Routage React + /api
+  .user.ini                 → Limites upload CV
+  DEPLOY_LISEZMOI.txt       → Ce fichier
+
+ETAPES SUR HOSTINGER
+--------------------
+1. hPanel → Sites web → Gérer → Bases de données MySQL
+   - Creer une base + utilisateur
+   - phpMyAdmin → Importer : backend_php/database/mysql_schema.sql
+
+2. hPanel → Gestionnaire de fichiers → public_html
+   - Supprimer le contenu par defaut (index.php Hostinger si present)
+   - Uploader TOUT le contenu de CE dossier (pas le dossier parent)
+
+3. Configurer l'API
+   - Renommer backend_php/.env.example en backend_php/.env
+   - Remplir : DB_NAME, DB_USER, DB_PASSWORD (valeurs hPanel)
+   - Remplir : GROQ_API_KEY, Azure (Outlook)
+   - CORS_ALLOWED_ORIGINS = votre domaine (ex. https://coloscore.com)
+
+4. Droits d'ecriture
+   - Dossier backend_php/media/ → permissions 755 ou 775
+
+5. Tester
+   - https://votre-domaine.com          → page login React
+   - https://votre-domaine.com/api/     → {"status":"ok","service":"NEWPRO PHP API"}
+
+PHP REQUIS (Hostinger)
+----------------------
+  PHP 8.1+ avec extensions : curl, pdo_mysql, mbstring, zip
+
+PREMIERE CONNEXION
+------------------
+  Si aucun admin : l'application affiche l'ecran de configuration initiale.
+
+Support : repo GitHub makoutmohamedamine/talentmatchiaphp

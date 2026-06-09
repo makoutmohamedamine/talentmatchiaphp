@@ -1,0 +1,20 @@
+# TalentMatch IA — Hostinger public_html (React + API PHP)
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # API et fichiers media (traites par index.php PHP)
+  RewriteRule ^api(/.*)?$ backend_php/public/index.php [QSA,L]
+  RewriteRule ^media(/.*)?$ backend_php/public/index.php [QSA,L]
+
+  # Fichiers statiques React deja presents
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # Routes React (SPA)
+  RewriteRule ^ index.html [L]
+</IfModule>
+
+# Securite : ne pas lister les dossiers
+Options -Indexes

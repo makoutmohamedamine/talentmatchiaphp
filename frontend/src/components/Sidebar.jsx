@@ -1,4 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
+import { useLanguage } from '../i18n/LanguageContext';
+import LanguageSwitcher from './LanguageSwitcher';
 
 const Icons = {
   dashboard: <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>,
@@ -8,44 +10,44 @@ const Icons = {
   entretiens: <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>,
   chat: <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h8M8 14h5M5 20l1.5-3A8 8 0 1119 5a8 8 0 01-12.5 12z" /></svg>,
   outlook: <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>,
-    ia: <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>,
+  ia: <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>,
   users: <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>,
   logout: <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>,
 };
 
 export default function Sidebar({ onLogout, currentUser, newCount = 0 }) {
   const { pathname } = useLocation();
+  const { t } = useLanguage();
   const isAdmin = currentUser?.role === 'admin' || currentUser?.is_staff === true || currentUser?.is_superuser === true;
 
   const NAV = [
     {
-      section: 'Principal',
+      section: t('nav.principal'),
       links: [
-        { to: '/',          icon: Icons.dashboard, label: 'TalentMatch IA' },
-        { to: '/dossiers-cv',  icon: Icons.dossiers,  label: 'Dossiers CV' },
-        { to: '/candidats', icon: Icons.candidats, label: 'Candidats' },
+        { to: '/', icon: Icons.dashboard, label: t('nav.dashboard') },
+        { to: '/dossiers-cv', icon: Icons.dossiers, label: t('nav.dossiers') },
+        { to: '/candidats', icon: Icons.candidats, label: t('nav.candidats') },
       ],
     },
     {
-      section: 'Recrutement',
+      section: t('nav.recruitment'),
       links: [
-        { to: '/postes',      icon: Icons.postes,   label: 'Fiches de poste' },
-        { to: '/entretiens',  icon: Icons.entretiens, label: 'Entretiens' },
-        { to: '/chat-rh',     icon: Icons.chat,     label: 'Chat RH' },
-        { to: '/analyse-ia',  icon: Icons.ia,       label: 'Analyse IA' },
+        { to: '/postes', icon: Icons.postes, label: t('nav.postes') },
+        { to: '/entretiens', icon: Icons.entretiens, label: t('nav.entretiens') },
+        { to: '/chat-rh', icon: Icons.chat, label: t('nav.chat') },
+        { to: '/analyse-ia', icon: Icons.ia, label: t('nav.analyse') },
       ],
     },
     ...(isAdmin ? [{
-      section: 'Administration',
+      section: t('nav.administration'),
       links: [
-        { to: '/utilisateurs', icon: Icons.users, label: 'Utilisateurs' },
+        { to: '/utilisateurs', icon: Icons.users, label: t('nav.users') },
       ],
     }] : []),
   ];
 
   return (
     <aside className="sidebar">
-      {/* Logo */}
       <div className="sidebar-logo">
         <img
           src="/logocld.png"
@@ -54,7 +56,6 @@ export default function Sidebar({ onLogout, currentUser, newCount = 0 }) {
         />
       </div>
 
-      {/* Info utilisateur connecté */}
       {currentUser && (
         <div style={{
           padding: '10px 16px 14px',
@@ -79,14 +80,13 @@ export default function Sidebar({ onLogout, currentUser, newCount = 0 }) {
                 fontSize: '0.7rem', fontWeight: 600,
                 color: isAdmin ? '#a78bfa' : '#22d3ee',
               }}>
-                {isAdmin ? 'Administrateur' : 'Recruteur RH'}
+                {isAdmin ? t('roles.admin') : t('roles.recruiter')}
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Navigation */}
       <nav className="sidebar-nav">
         {NAV.map((section) => (
           <div key={section.section}>
@@ -112,15 +112,15 @@ export default function Sidebar({ onLogout, currentUser, newCount = 0 }) {
         ))}
       </nav>
 
-      {/* Footer — déconnexion */}
       <div className="sidebar-footer">
+        <LanguageSwitcher className="sidebar-lang-switcher" />
         <button
           onClick={onLogout}
           className="sidebar-link"
           style={{ width: '100%', background: 'none', border: 'none', color: '#a1a1aa' }}
         >
           <span className="icon">{Icons.logout}</span>
-          Déconnexion
+          {t('common.logout')}
         </button>
       </div>
     </aside>

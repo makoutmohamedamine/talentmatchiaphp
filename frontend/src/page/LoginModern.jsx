@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { API_BASE_URL } from '../api/api';
+import { useLanguage } from '../i18n/LanguageContext';
+import LanguageSwitcher from '../components/LanguageSwitcher';
 
 function AuthField({ label, type = 'text', value, onChange, placeholder, autoComplete, required = true }) {
   return (
@@ -22,6 +24,7 @@ function LoadingDot() {
 }
 
 export default function LoginModern({ onLogin }) {
+  const { t } = useLanguage();
   const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -50,7 +53,7 @@ export default function LoginModern({ onLogin }) {
     const userName =
       [user?.first_name, user?.last_name].filter(Boolean).join(' ').trim() ||
       user?.username ||
-      'utilisateur';
+      t('common.user');
 
     sessionStorage.setItem('welcome_user', userName);
     setWelcomeName(userName);
@@ -79,10 +82,10 @@ export default function LoginModern({ onLogin }) {
         localStorage.setItem('current_user', JSON.stringify(data.user));
         triggerWelcomeAndLogin(data.access, data.user);
       } else {
-        setError(data.error || 'Identifiants incorrects');
+        setError(data.error || t('auth.wrongCredentials'));
       }
     } catch {
-      setError('Erreur de connexion au serveur');
+      setError(t('auth.serverError'));
     } finally {
       setLoading(false);
     }
@@ -93,15 +96,15 @@ export default function LoginModern({ onLogin }) {
     setError('');
 
     if (!signUpData.username || !signUpData.email || !signUpData.first_name || !signUpData.last_name) {
-      setError('Tous les champs sont requis');
+      setError(t('auth.allFieldsRequired'));
       return;
     }
     if (signUpData.password.length < 6) {
-      setError('Le mot de passe doit faire au moins 6 caracteres');
+      setError(t('auth.passwordMin'));
       return;
     }
     if (signUpData.password !== signUpData.password_confirm) {
-      setError('Les mots de passe ne correspondent pas');
+      setError(t('auth.passwordMismatch'));
       return;
     }
 
@@ -126,10 +129,10 @@ export default function LoginModern({ onLogin }) {
         localStorage.setItem('current_user', JSON.stringify(data.user));
         triggerWelcomeAndLogin(data.access, data.user);
       } else {
-        setError(data.error || 'Erreur lors de la creation du compte');
+        setError(data.error || t('auth.signupError'));
       }
     } catch {
-      setError('Erreur de connexion au serveur');
+      setError(t('auth.serverError'));
     } finally {
       setLoading(false);
     }
@@ -141,18 +144,22 @@ export default function LoginModern({ onLogin }) {
 
   return (
     <main className="auth-page">
+      <div className="auth-lang-floating">
+        <LanguageSwitcher />
+      </div>
+
       {welcomeName && (
         <div className="auth-welcome-overlay">
           <section className="auth-welcome-card">
             <div className="auth-welcome-mark">TM</div>
-            <p>Connexion reussie</p>
-            <h2>Bienvenue {welcomeName}</h2>
-            <span>Preparation de votre espace recrutement...</span>
+            <p>{t('welcome.success')}</p>
+            <h2>{t('welcome.hello')} {welcomeName}</h2>
+            <span>{t('welcome.preparing')}</span>
           </section>
         </div>
       )}
 
-      <section className="auth-brand-panel" aria-label="Presentation TalentMatch IA">
+      <section className="auth-brand-panel" aria-label="TalentMatch IA">
         <div className="auth-brand-glow auth-brand-glow-one" />
         <div className="auth-brand-glow auth-brand-glow-two" />
 
@@ -161,32 +168,29 @@ export default function LoginModern({ onLogin }) {
         </div>
 
         <div className="auth-brand-content">
-          <span className="auth-eyebrow">Plateforme RH intelligente</span>
+          <span className="auth-eyebrow">{t('auth.brandEyebrow')}</span>
           <h1>
             TalentMatch
             <strong> IA</strong>
           </h1>
-          <p>
-            Centralisez vos candidatures, analysez les profils et priorisez les meilleurs talents avec une experience claire,
-            rapide et professionnelle.
-          </p>
+          <p>{t('auth.brandText')}</p>
         </div>
 
         <div className="auth-feature-grid">
           <article>
             <span>01</span>
-            <strong>Import automatique</strong>
-            <p>Outlook, Gmail et CV centralises dans un seul espace.</p>
+            <strong>{t('auth.feature1Title')}</strong>
+            <p>{t('auth.feature1Text')}</p>
           </article>
           <article>
             <span>02</span>
-            <strong>Matching IA</strong>
-            <p>Scoring et ranking des candidats par poste.</p>
+            <strong>{t('auth.feature2Title')}</strong>
+            <p>{t('auth.feature2Text')}</p>
           </article>
           <article>
             <span>03</span>
-            <strong>Pilotage RH</strong>
-            <p>KPIs, pipeline et suivi des actions recruteur.</p>
+            <strong>{t('auth.feature3Title')}</strong>
+            <p>{t('auth.feature3Text')}</p>
           </article>
         </div>
       </section>
@@ -195,27 +199,23 @@ export default function LoginModern({ onLogin }) {
         <div className="auth-card">
           <div className="auth-card-topline" />
           <div className="auth-card-header">
-            <span className="auth-card-kicker">{isSignUp ? 'Nouvel acces' : 'Acces securise'}</span>
-            <h2>{isSignUp ? 'Creer un compte' : 'Connexion'}</h2>
-            <p>
-              {isSignUp
-                ? 'Completez vos informations pour rejoindre la plateforme.'
-                : 'Entrez vos identifiants pour acceder a votre espace TalentMatch IA.'}
-            </p>
+            <span className="auth-card-kicker">{isSignUp ? t('auth.newAccess') : t('auth.secureAccess')}</span>
+            <h2>{isSignUp ? t('auth.signupTitle') : t('auth.loginTitle')}</h2>
+            <p>{isSignUp ? t('auth.signupSubtitle') : t('auth.loginSubtitle')}</p>
           </div>
 
           {isSignUp ? (
             <form className="auth-form" onSubmit={handleSignUpSubmit}>
               <div className="auth-two-cols">
                 <AuthField
-                  label="Prenom"
+                  label={t('auth.firstName')}
                   value={signUpData.first_name}
                   onChange={(e) => handleSignUpChange('first_name', e.target.value)}
                   placeholder="Amine"
                   autoComplete="given-name"
                 />
                 <AuthField
-                  label="Nom"
+                  label={t('auth.lastName')}
                   value={signUpData.last_name}
                   onChange={(e) => handleSignUpChange('last_name', e.target.value)}
                   placeholder="Jabri"
@@ -224,7 +224,7 @@ export default function LoginModern({ onLogin }) {
               </div>
 
               <AuthField
-                label="Email professionnel"
+                label={t('auth.email')}
                 type="email"
                 value={signUpData.email}
                 onChange={(e) => handleSignUpChange('email', e.target.value)}
@@ -232,70 +232,70 @@ export default function LoginModern({ onLogin }) {
                 autoComplete="email"
               />
               <AuthField
-                label="Nom d'utilisateur"
+                label={t('auth.username')}
                 value={signUpData.username}
                 onChange={(e) => handleSignUpChange('username', e.target.value)}
                 placeholder="amine"
                 autoComplete="username"
               />
               <AuthField
-                label="Mot de passe"
+                label={t('auth.password')}
                 type="password"
                 value={signUpData.password}
                 onChange={(e) => handleSignUpChange('password', e.target.value)}
-                placeholder="Minimum 6 caracteres"
+                placeholder="••••••"
                 autoComplete="new-password"
               />
               <AuthField
-                label="Confirmer le mot de passe"
+                label={t('auth.confirmPassword')}
                 type="password"
                 value={signUpData.password_confirm}
                 onChange={(e) => handleSignUpChange('password_confirm', e.target.value)}
-                placeholder="Repetez le mot de passe"
+                placeholder="••••••"
                 autoComplete="new-password"
               />
 
               {error && <div className="auth-error">! {error}</div>}
 
               <button className="auth-submit" type="submit" disabled={loading}>
-                {loading ? <><LoadingDot /> Creation...</> : 'Creer mon compte'}
+                {loading ? <><LoadingDot /> {t('auth.signupLoading')}</> : t('auth.signupBtn')}
               </button>
 
               <p className="auth-switch">
-                Vous avez deja un compte ?
+                {t('auth.hasAccount')}
                 <button type="button" onClick={() => { setIsSignUp(false); setError(''); }}>
-                  Se connecter
+                  {t('auth.goLogin')}
                 </button>
               </p>
             </form>
           ) : (
             <form className="auth-form" onSubmit={handleLoginSubmit}>
               <AuthField
-                label="Nom d'utilisateur"
+                label={t('auth.username')}
                 value={loginUsername}
                 onChange={(e) => setLoginUsername(e.target.value)}
                 placeholder="Amine"
                 autoComplete="username"
               />
               <AuthField
-                label="Mot de passe"
+                label={t('auth.password')}
                 type="password"
                 value={loginPassword}
                 onChange={(e) => setLoginPassword(e.target.value)}
-                placeholder="Votre mot de passe"
+                placeholder="••••••"
                 autoComplete="current-password"
               />
 
               {error && <div className="auth-error">! {error}</div>}
 
               <button className="auth-submit" type="submit" disabled={loading}>
-                {loading ? <><LoadingDot /> Connexion...</> : 'Se connecter'}
+                {loading ? <><LoadingDot /> {t('auth.loginLoading')}</> : t('auth.loginBtn')}
               </button>
 
               <p className="auth-switch">
-                Pas encore inscrit ?
+                {t('auth.noAccount')}
                 <button type="button" onClick={() => { setIsSignUp(true); setError(''); }}>
-                  Creer un compte
+                  {t('auth.goSignup')}
                 </button>
               </p>
             </form>
@@ -303,7 +303,7 @@ export default function LoginModern({ onLogin }) {
 
           <div className="auth-footer">
             <span>TalentMatch IA</span>
-            <span>Recruitment Intelligence Suite</span>
+            <span>{t('auth.footerTagline')}</span>
           </div>
         </div>
       </section>

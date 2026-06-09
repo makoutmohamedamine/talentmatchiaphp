@@ -1,11 +1,14 @@
-# TalentMatch IA — Frontend React
+# Frontend React — TalentMatch IA
 
-Interface web (candidats, postes, analyse IA Groq, Outlook). Ce dossier fait partie du depot unique **talentmatchiaphp** (backend PHP a la racine + `frontend/`).
+Interface web : candidats, postes, analyse IA, Outlook, chat RH.
+
+Le backend PHP est dans le dossier voisin [`../backend_php/`](../backend_php/).
 
 ## Developpement local
 
 ```powershell
-# Terminal 1 — API PHP (racine du depot)
+# Terminal 1 — API (depuis ../backend_php)
+cd ..\backend_php
 php -S 127.0.0.1:8001 -t public
 
 # Terminal 2 — React
@@ -15,32 +18,12 @@ npm install
 npm start
 ```
 
-Application : http://localhost:3000 — API : `http://127.0.0.1:8001/api`
-
 ## Build production
 
 ```bash
-cd frontend
 cp .env.example .env.production
 # REACT_APP_API_URL=https://votre-domaine.com/api
-npm ci
-npm run build
+npm ci && npm run build
 ```
 
-## Deploiement serveur
-
-Structure apres `git clone` :
-
-```
-/var/www/talentmatchiaphp/
-  public/           # API PHP
-  src/
-  frontend/build/   # npm run build
-  media/            # CV uploades
-  .env              # config PHP (non versionne)
-```
-
-1. Configurer `.env` a la racine (voir `.env.example`)
-2. Builder le frontend avec la bonne `REACT_APP_API_URL`
-3. Copier `deploy/nginx-fullstack.conf` vers Nginx
-4. `sudo nginx -t && sudo systemctl reload nginx`
+Le dossier `build/` est servi par Nginx (voir `../deploy/nginx-fullstack.conf`).

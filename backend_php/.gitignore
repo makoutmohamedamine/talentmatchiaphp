@@ -1,0 +1,5 @@
+.env
+*.log
+test_cv.pdf
+vendor/
+media/

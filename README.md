@@ -1,38 +1,29 @@
 # TalentMatch IA
 
-Application de recrutement : **API PHP** (racine) + **frontend React** (`frontend/`).
+Application de recrutement — depot monorepo avec **deux dossiers separes** :
 
-Depot : [github.com/makoutmohamedamine/talentmatchiaphp](https://github.com/makoutmohamedamine/talentmatchiaphp)
+| Dossier | Role |
+|---------|------|
+| [`backend_php/`](backend_php/) | API REST PHP 8.3 (Groq, Outlook, MySQL) |
+| [`frontend/`](frontend/) | Interface React |
 
-## Structure
+## Clone et demarrage local
 
-```
-talentmatchiaphp/
-  public/          # Point d'entree API
-  src/             # Code PHP (Groq, Outlook, candidats…)
-  database/        # Schema MySQL
-  frontend/        # Application React
-  deploy/          # Nginx (API seule ou fullstack)
-  .env.example     # Configuration PHP
+```bash
+git clone https://github.com/makoutmohamedamine/talentmatchiaphp.git
+cd talentmatchiaphp
 ```
 
-## Installation rapide
-
-### 1. Base MySQL
-
-1. Creer la base `newpro` (utf8mb4_unicode_ci)
-2. Importer `database/mysql_schema.sql`
-3. `copy .env.example .env` et adapter DB / Groq / Azure
-
-### 2. Backend PHP
-
-Extensions : `curl`, `mbstring`, `pdo_mysql`, `zip`
+### Backend
 
 ```powershell
+cd backend_php
+copy .env.example .env
+# Editer DB, GROQ_API_KEY, Azure Outlook…
 php -S 127.0.0.1:8001 -t public
 ```
 
-### 3. Frontend React
+### Frontend
 
 ```powershell
 cd frontend
@@ -41,46 +32,34 @@ npm install
 npm start
 ```
 
-→ http://localhost:3000 (API : `http://127.0.0.1:8001/api`)
+→ http://localhost:3000 — API : `http://127.0.0.1:8001/api`
 
 ## Deploiement production
 
 ```bash
-# Sur le serveur
 git clone https://github.com/makoutmohamedamine/talentmatchiaphp.git /var/www/talentmatchiaphp
-cd /var/www/talentmatchiaphp
-cp .env.example .env   # editer DB, GROQ_API_KEY, Azure…
 
-cd frontend
+# Backend
+cd /var/www/talentmatchiaphp/backend_php
+cp .env.example .env
+# Configurer DB, Groq, Azure…
+
+# Frontend
+cd /var/www/talentmatchiaphp/frontend
 cp .env.example .env.production
 # REACT_APP_API_URL=https://votre-domaine.com/api
 npm ci && npm run build
 
-sudo cp deploy/nginx-fullstack.conf /etc/nginx/sites-available/talentmatchia
-# Adapter VOTRE_DOMAINE et chemins
+# Nginx
+sudo cp /var/www/talentmatchiaphp/deploy/nginx-fullstack.conf /etc/nginx/sites-available/talentmatchia
 sudo nginx -t && sudo systemctl reload nginx
 ```
 
-## Configuration Groq
+Structure serveur :
 
-```env
-GROQ_API_KEY=gsk_...
-GROQ_MODEL=llama-3.1-8b-instant
 ```
-
-## Outlook (cv@colorado.ma)
-
-```env
-AZURE_TENANT_ID=...
-AZURE_CLIENT_ID=...
-AZURE_CLIENT_SECRET=...
-OUTLOOK_MAILBOX=cv@colorado.ma
+/var/www/talentmatchiaphp/
+  backend_php/public/    # API
+  backend_php/media/     # CV uploades
+  frontend/build/        # React compile
 ```
-
-Permissions Azure : `Mail.Read` (application) + consentement admin.
-
-Endpoints : `GET /api/outlook/status/`, `POST /api/outlook/sync/`
-
-## API principale
-
-Auth, candidats, postes, upload CV, analyse/scoring Groq, chat RH, utilisateurs — voir `src/App.php`.
